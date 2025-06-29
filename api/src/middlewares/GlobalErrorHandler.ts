@@ -3,7 +3,9 @@ import {
   ExpressErrorMiddlewareInterface
 } from "routing-controllers";
 import { Request, Response } from "express";
+import { Service } from "typedi";
 
+@Service()
 @Middleware({ type: "after" })
 export class GlobalErrorHandler implements ExpressErrorMiddlewareInterface {
   error(
