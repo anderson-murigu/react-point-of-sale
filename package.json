@@ -50,7 +50,7 @@
     "start:api": "cd api && npm start",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
-    "start": "npm run dev:web",
+    "start": "react-scripts start",
     "build": "npm run build:web"
   },
   "browserslist": {
