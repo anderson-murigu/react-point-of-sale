@@ -1,4 +1,4 @@
-import { getConnection } from "typeorm";
+import { DataSource } from "typeorm";
 import { CrudServices, IFetchPageQuery } from "./CrudServices";
 import { Receiving } from "../entity/Receiving";
 import { Stock } from "../entity/Stock";
@@ -12,8 +12,8 @@ export class ReceivingServices {
   }
 
   public async create(userId: string, receiving: Receiving) {
-    const connection = getConnection();
-    const queryRunner = connection.createQueryRunner();
+    const { AppDataSource } = await import("../persistence");
+    const queryRunner = AppDataSource.createQueryRunner();
 
     await queryRunner.connect();
 
@@ -25,7 +25,7 @@ export class ReceivingServices {
       await queryRunner.manager.increment(
         Stock,
         { id: receiving.product.id },
-        "count",
+        "qty",
         receiving.qty
       );
       // commit transaction.
