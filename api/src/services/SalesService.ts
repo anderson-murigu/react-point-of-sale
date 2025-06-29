@@ -1,5 +1,5 @@
 import * as currency from "currency.js";
-import { getManager, getConnection, EntityManager } from "typeorm";
+import { DataSource, EntityManager } from "typeorm";
 import { TransactionId } from "../entity/TransactionId";
 import { TransactionDetails } from "../entity/TransactionDetails";
 import { Product } from "../entity/Product";
@@ -20,12 +20,17 @@ import {
 import * as Messages from "./messages";
 
 export class SalesService {
+  private async getDataSource(): Promise<DataSource> {
+    const { AppDataSource } = await import("../persistence");
+    return AppDataSource;
+  }
+
   public async initTransaction(userId: string = "admin"): Promise<number> {
     let returnId: number = null;
 
     const id = this.getIdPrefix();
-    const connection = getConnection();
-    const queryRunner = connection.createQueryRunner();
+    const dataSource = await this.getDataSource();
+    const queryRunner = dataSource.createQueryRunner();
 
     await queryRunner.connect();
 
@@ -33,14 +38,16 @@ export class SalesService {
     await queryRunner.startTransaction();
 
     try {
-      const count = await queryRunner.manager.count(TransactionId, { id });
+      const count = await queryRunner.manager.count(TransactionId, { 
+        where: { id } 
+      });
 
       if (count > 0) {
         await queryRunner.manager.increment(TransactionId, { id }, "count", 1);
 
         const transactionId: TransactionId = await queryRunner.manager.findOne(
           TransactionId,
-          id
+          { where: { id } }
         );
 
         returnId = Number(`${transactionId.id}${transactionId.count}`);
@@ -79,7 +86,8 @@ export class SalesService {
     transactionHeader.transactionStatus = TransactionStatus.Pending;
     transactionHeader.updatedBy = userId;
 
-    await getManager().save(transactionHeader);
+    const dataSource = await this.getDataSource();
+    await dataSource.manager.save(transactionHeader);
 
     return transactionId;
   }
@@ -96,8 +104,9 @@ export class SalesService {
       throw Messages.TRANSACTION_ID_NOT_FOUND;
     }
 
-    const product = await getManager().findOne(Product, {
-      id: cartItem.productId
+    const dataSource = await this.getDataSource();
+    const product = await dataSource.manager.findOne(Product, {
+      where: { id: cartItem.productId }
     });
 
     // Check the entered price is correct or not.
@@ -119,11 +128,11 @@ export class SalesService {
     cartItem.createdBy = userId;
     cartItem.updatedBy = userId;
 
-    await getManager().save(cartItem);
+    await dataSource.manager.save(cartItem);
 
     transactionHeader.transactionStatus = TransactionStatus.Pending;
 
-    await getManager().save(transactionHeader);
+    await dataSource.manager.save(transactionHeader);
 
     return Messages.ADDED_TO_CART;
   }
@@ -135,7 +144,8 @@ export class SalesService {
       throw Messages.TRANSACTION_ID_NOT_FOUND;
     }
 
-    return await getManager().delete(TransactionDetails, {
+    const dataSource = await this.getDataSource();
+    return await dataSource.manager.delete(TransactionDetails, {
       id,
       productId
     });
@@ -150,7 +160,8 @@ export class SalesService {
       throw Messages.TRANSACTION_ID_NOT_FOUND;
     }
 
-    await getManager()
+    const dataSource = await this.getDataSource();
+    await dataSource.manager
       .createQueryBuilder()
       .delete()
       .from(TransactionDetails)
@@ -184,8 +195,8 @@ export class SalesService {
     saleDetails: CheckoutSale,
     isCreditSale: boolean = false
   ): Promise<any> {
-    const connection = getConnection();
-    const queryRunner = connection.createQueryRunner();
+    const dataSource = await this.getDataSource();
+    const queryRunner = dataSource.createQueryRunner();
 
     await queryRunner.connect();
 
@@ -220,8 +231,8 @@ export class SalesService {
       transactionId
     );
 
-    const connection = getConnection();
-    const queryRunner = connection.createQueryRunner();
+    const dataSource = await this.getDataSource();
+    const queryRunner = dataSource.createQueryRunner();
 
     await queryRunner.connect();
 
@@ -232,15 +243,17 @@ export class SalesService {
       const previousTransaction = await queryRunner.manager.findOne(
         CreditTransactions,
         {
-          customerId,
-          transactionId,
-          isReverted: false
+          where: {
+            customerId,
+            transactionId,
+            isReverted: false
+          }
         }
       );
 
       const pointer = await queryRunner.manager.findOne(
         CreditTransactionsPointer,
-        { customerId }
+        { where: { customerId } }
       );
 
       if (!previousTransaction || !pointer) {
@@ -304,7 +317,8 @@ export class SalesService {
   }
 
   private async deleteCounterSale(id: number): Promise<any> {
-    await getManager()
+    const dataSource = await this.getDataSource();
+    await dataSource.manager
       .createQueryBuilder()
       .delete()
       .from(TransactionDetails)
@@ -319,7 +333,9 @@ export class SalesService {
     userId: string,
     saleDetails: CheckoutSale
   ): Promise<any> {
-    const count = await manager.count(Customer, { id: saleDetails.customerId });
+    const count = await manager.count(Customer, { 
+      where: { id: saleDetails.customerId } 
+    });
 
     if (count !== 1) {
       throw Messages.INVALID_CUSTOMER;
@@ -346,13 +362,15 @@ export class SalesService {
     currentTransaction.balance = currentBalance;
 
     const previousTransaction = await manager.findOne(CreditTransactions, {
-      customerId: saleDetails.customerId,
-      transactionId: saleDetails.transactionId,
-      isReverted: false
+      where: {
+        customerId: saleDetails.customerId,
+        transactionId: saleDetails.transactionId,
+        isReverted: false
+      }
     });
 
     let pointer = await manager.findOne(CreditTransactionsPointer, {
-      customerId: saleDetails.customerId
+      where: { customerId: saleDetails.customerId }
     });
 
     // To cross verify the pointer table has the latest update on customer.
@@ -496,7 +514,8 @@ export class SalesService {
   private async fetchInProcessTransactionHeader(
     cartItemId: number
   ): Promise<TransactionHeader> {
-    return await getManager()
+    const dataSource = await this.getDataSource();
+    return await dataSource.manager
       .createQueryBuilder(TransactionHeader, "th")
       .where(
         "th.id = :id AND isActive = 1 AND th.transactionStatus NOT IN (2)",
@@ -511,7 +530,8 @@ export class SalesService {
   private async fetchFinishedTransactionHeader(
     cartItemId: number
   ): Promise<TransactionHeader> {
-    return await getManager()
+    const dataSource = await this.getDataSource();
+    return await dataSource.manager
       .createQueryBuilder(TransactionHeader, "th")
       .where(
         "th.id = :id AND isActive = 1 AND th.transactionStatus IN (:...status)",

@@ -1,7 +1,7 @@
-import { createConnection, Connection, ConnectionOptions } from 'typeorm';
+import { DataSource } from 'typeorm';
 
-const configDev: ConnectionOptions = {
-  type: 'sqlite',
+const configDev = {
+  type: 'sqlite' as const,
   database: 'database.sqlite',
   entities: [__dirname + '/../entity/*.ts'],
   migrations: [__dirname + '/../persistence/migration/*.ts'],
@@ -9,8 +9,8 @@ const configDev: ConnectionOptions = {
   synchronize: false
 };
 
-const configProd: ConnectionOptions = {
-  type: 'sqlite',
+const configProd = {
+  type: 'sqlite' as const,
   database: 'database.sqlite',
   entities: [__dirname + '/../entity/*.js'],
   migrations: [__dirname + '/../persistence/migration/*.js'],
@@ -18,7 +18,13 @@ const configProd: ConnectionOptions = {
   synchronize: false
 };
 
-export const openConnection: any = async () => {
-  const config = process.env.IS_PROD ? configProd : configDev;
-  return await createConnection(config);
+const config = process.env.IS_PROD ? configProd : configDev;
+
+export const AppDataSource = new DataSource(config);
+
+export const openConnection = async () => {
+  if (!AppDataSource.isInitialized) {
+    await AppDataSource.initialize();
+  }
+  return AppDataSource;
 };
