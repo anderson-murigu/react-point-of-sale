@@ -61,7 +61,7 @@ export class CrudServices<T> {
     const repository = await this.getRepository();
     (entity as any).createdBy = userId;
     (entity as any).updatedBy = userId;
-    return await repository.insert(entity);
+    return await repository.save(entity);
   }
 
   public async updateById(
@@ -75,7 +75,7 @@ export class CrudServices<T> {
       data.id = (where as any).id;
       return await repository.update({ ...where }, data);
     } catch (error) {
-      if (error.code === "SQLITE_CONSTRAINT" && error.errno === 19) {
+      if ((error as any).code === "SQLITE_CONSTRAINT" && (error as any).errno === 19) {
         throw {
           code: "SQLITE_CONSTRAINT",
           message: `This record can't be updated since it has references with other parts of data. Please ensure that those are deleted and try this operation`
@@ -90,7 +90,7 @@ export class CrudServices<T> {
       const repository = await this.getRepository();
       return await repository.delete(id);
     } catch (error) {
-      if (error.code === "SQLITE_CONSTRAINT" && error.errno === 19) {
+      if ((error as any).code === "SQLITE_CONSTRAINT" && (error as any).errno === 19) {
         throw {
           code: "SQLITE_CONSTRAINT",
           message: `This record can't be deleted since it has references with other parts of data. Please ensure that those are deleted and try this operation`
