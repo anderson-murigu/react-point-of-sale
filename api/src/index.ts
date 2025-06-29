@@ -52,7 +52,10 @@ async function createServer(): Promise<any> {
 
     const app: Application = createExpressServer({
       authorizationChecker: authorizationChecker,
-      cors: true,
+      cors: {
+        origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+        credentials: true
+      },
       routePrefix: '/api',
       defaultErrorHandler: false,
       middlewares: [__dirname + '/middlewares/**/*{.ts,.js}'],
