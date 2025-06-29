@@ -1,9 +1,9 @@
 import { Get, Controller } from 'routing-controllers';
 
 @Controller()
-export class AuthController {
+export class PingController {
   @Get('/')
-  public async login() {
+  public async ping() {
     return 'Welcome to react-point-of-sale api';
   }
 }
