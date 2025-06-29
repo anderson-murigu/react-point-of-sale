@@ -41,17 +41,10 @@
     "eslint-plugin-react": "^7.7.0"
   },
   "scripts": {
-    "dev:web": "react-scripts start",
-    "dev:api": "cd api && npm run dev:api",
-    "build:web": "react-scripts build",
-    "build:api": "cd api && npm run build:api",
-    "prod:serve": "cd api && npm run build:api && node build/index.js",
-    "start:web": "cross-env REACT_APP_IS_PROD=true cross-env REACT_APP_PROD_URL_PREFIX='https://nreact-api.herokuapp.com/api' npm run dev:web",
-    "start:api": "cd api && npm start",
-    "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject",
     "start": "react-scripts start",
-    "build": "npm run build:web"
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
   },
   "browserslist": {
     "production": [
